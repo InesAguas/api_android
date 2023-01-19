@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import psycopg2, json, jwt
+import psycopg2, jwt
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -23,7 +23,7 @@ def token_required(f):
         #checks if token is in request header
         if 'token' not in request.headers:
             return jsonify({"Error:": "Missing token"}), BAD_REQUEST
-        
+
         try:
             token = request.headers['token']
            #decodes the token and checks if date is valid
@@ -51,7 +51,7 @@ def user_login():
         query = """SELECT id, username FROM users WHERE username = %s AND password = crypt(%s, password);"""
         cur.execute(query, (content['username'], content['password']))
         results = cur.fetchone()
-
+        print(results)
         if results is None:
             return jsonify({"Error:": "Wrong credentials"}), BAD_REQUEST
 
@@ -63,6 +63,7 @@ def user_login():
         return jsonify({"id": results[0], "username": results[1], "token": token}), SUCCESS
 
     except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
 
@@ -97,14 +98,45 @@ def user_add():
 @app.route("/games/add", methods=['POST'])
 @token_required
 def add_game():
-    return jsonify({"Message:": "The user was registered"}), SUCCESS
+    content = request.get_json()
+
+    if 'player1' not in content or 'player2' not in content:
+        return jsonify({"Error:": "Missing values"}), BAD_REQUEST
+    
+    player1 = content['player1']
+    player2 = content['player2']
+
+    if(not player1.strip() or not player2.strip()):
+        return jsonify({"Error:": "Values can't be empty"}), BAD_REQUEST
+
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query = """INSERT INTO games (player1, player2) VALUES (%s, %s);"""
+        cur.execute(query,[player1, player2])
+        conn.commit()
+        conn.close()
+        return jsonify({"Message:": "Game saved"}), SUCCESS
+
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
 #view all games, token is required
 @app.route("/games/all", methods=['GET'])
 @token_required
 def view_games():
-    return jsonify({"Message:": "The user was registered"}), SUCCESS
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query = """SELECT * FROM games;"""
+        cur.execute(query)
+        results = cur.fetchall()
+        print(results)
+        conn.close()
+        return jsonify({"Games:": results}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
 def connection():
-    conn = psycopg2.connect(host="localhost", database="tennis_api", user="postgres", password="postgres")
+    conn = psycopg2.connect(host="aid.estgoh.ipc.pt", database="db2020155202", user="a2020155202", password="a2020155202")
     return conn
