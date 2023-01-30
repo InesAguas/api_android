@@ -41,6 +41,7 @@ def token_required(f):
 @app.route("/user/login", methods=['POST'])
 def user_login():
     content = request.get_json()
+    print(content)
 
     if 'username' not in content or 'password' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
@@ -100,20 +101,26 @@ def user_add():
 def add_game():
     content = request.get_json()
 
-    if 'player1' not in content or 'player2' not in content:
+    if 'player1' not in content or 'player2' not in content or 'tournament' not in content or 'score1' not in content or 'score2' not in content or 'date' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
     
     player1 = content['player1']
     player2 = content['player2']
+    tournament = content['tournament']
+    score1 = content['score1']
+    score2 = content['score2']
+    date = content['date']
+    token = request.headers['token']
+    token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
 
-    if(not player1.strip() or not player2.strip()):
+    if(not player1.strip() or not player2.strip() or not tournament.strip()):
         return jsonify({"Error:": "Values can't be empty"}), BAD_REQUEST
 
     try:
         conn = connection()
         cur = conn.cursor()
-        query = """INSERT INTO games (player1, player2) VALUES (%s, %s);"""
-        cur.execute(query,[player1, player2])
+        query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date) VALUES (%s,%s, %s, %s, %s, %s, %s);"""
+        cur.execute(query,[token_decoded['id'],player1, player2, tournament, score1, score2, date])
         conn.commit()
         conn.close()
         return jsonify({"Message:": "Game saved"}), SUCCESS
