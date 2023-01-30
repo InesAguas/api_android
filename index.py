@@ -85,12 +85,16 @@ def user_add():
     try:
         conn = connection()
         cur = conn.cursor()
+        query_check = """SELECT id, username FROM users WHERE username = %s AND password = crypt(%s, password);"""
+        cur.execute(query_check, [username, password])
+        result = cur.fetchone()
+        if result:
+            return jsonify({"Error:": "User already exists"}), BAD_REQUEST
         query = """INSERT INTO users (username, password) VALUES (%s, crypt(%s, gen_salt('bf')));"""
         cur.execute(query,[username, password])
         conn.commit()
         conn.close()
         return jsonify({"Message:": "The user was registered"}), SUCCESS
-
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
