@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import psycopg2, jwt
+import psycopg2, jwt, json
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -142,9 +142,11 @@ def view_games():
         query = """SELECT * FROM games;"""
         cur.execute(query)
         results = cur.fetchall()
-        print(results)
         conn.close()
-        return jsonify({"Games:": results}), SUCCESS
+        finalresults = []
+        for row in results:
+            finalresults.append({"player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7]})
+        return jsonify(finalresults), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
