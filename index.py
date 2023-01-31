@@ -150,6 +150,29 @@ def view_games():
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
+@app.route("/games/<int:id>/delete", methods=['DELETE'])
+@token_required
+def delete_game(id):
+    token = request.headers['token']
+    token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query_check = """SELECT * FROM games WHERE id = %s AND user_id = %s;"""
+        cur.execute(query_check, [id, token_decoded['id']])
+        result = cur.fetchone()
+        if result is None:
+            conn.close()
+            return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
+        
+        query = """DELETE FROM games WHERE id = %s"""
+        cur.execute(query, [id])
+        conn.commit()
+        conn.close()
+        return jsonify({"Success:": "Game deleted"}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
+
 def connection():
     conn = psycopg2.connect(host="aid.estgoh.ipc.pt", database="db2020155202", user="a2020155202", password="a2020155202")
     return conn
