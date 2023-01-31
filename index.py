@@ -145,7 +145,7 @@ def view_games():
         conn.close()
         finalresults = []
         for row in results:
-            finalresults.append({"player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d")})
+            finalresults.append({"id":row[0], "player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d")})
         return jsonify(finalresults), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
