@@ -11,6 +11,7 @@ BAD_REQUEST = 400
 UNAUTHORIZED_CODE = 401
 SERVER_ERROR = 500
 SUCCESS = 200
+NO_UPDATE = 204
 
 @app.route("/")
 def welcome():
@@ -123,11 +124,12 @@ def add_game():
     try:
         conn = connection()
         cur = conn.cursor()
-        query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date, stage) VALUES (%s,%s, %s, %s, %s, %s, %s, %s);"""
+        query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date, stage) VALUES (%s,%s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
         cur.execute(query,[token_decoded['id'],player1, player2, tournament, score1, score2, date, 1])
+        result = cur.fetchone()
         conn.commit()
         conn.close()
-        return jsonify({"Message:": "Game saved"}), SUCCESS
+        return jsonify({"id:": result[0]}), SUCCESS
 
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
@@ -197,6 +199,28 @@ def update_game(id):
         conn.commit()
         conn.close()
         return jsonify({"Success:": "Game updated"}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
+
+
+@app.route("/games/<int:id>/<int:stage>/update", methods=['GET'])
+@token_required
+def get_updated_game(id, stage):
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query_check = """SELECT * FROM games WHERE id = %s;"""
+        cur.execute(query_check, [id])
+        result = cur.fetchone()
+        if result is None:
+            conn.close()
+            return jsonify({"Error:": "No game with that id"}), BAD_REQUEST
+        conn.close()
+
+        if result[8] <= stage:
+            return jsonify({"Message:": "The game has not been updated"}), NO_UPDATE
+        
+        return jsonify({"score1":result[5], "score2":result[6], "stage":result[8]}), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
