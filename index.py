@@ -129,7 +129,7 @@ def add_game():
         result = cur.fetchone()
         conn.commit()
         conn.close()
-        return jsonify({"id:": result[0]}), SUCCESS
+        return jsonify({"id": result[0]}), SUCCESS
 
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
