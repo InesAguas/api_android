@@ -123,8 +123,8 @@ def add_game():
     try:
         conn = connection()
         cur = conn.cursor()
-        query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date) VALUES (%s,%s, %s, %s, %s, %s, %s);"""
-        cur.execute(query,[token_decoded['id'],player1, player2, tournament, score1, score2, date])
+        query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date, stage) VALUES (%s,%s, %s, %s, %s, %s, %s, %s);"""
+        cur.execute(query,[token_decoded['id'],player1, player2, tournament, score1, score2, date, 1])
         conn.commit()
         conn.close()
         return jsonify({"Message:": "Game saved"}), SUCCESS
@@ -145,7 +145,7 @@ def view_games():
         conn.close()
         finalresults = []
         for row in results:
-            finalresults.append({"id":row[0], "player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d")})
+            finalresults.append({"id":row[0], "player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d"), "stage":row[8]})
         return jsonify(finalresults), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
@@ -170,6 +170,33 @@ def delete_game(id):
         conn.commit()
         conn.close()
         return jsonify({"Success:": "Game deleted"}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
+
+@app.route("/games/<int:id>/update", methods=['PUT'])
+@token_required
+def update_game(id):
+    content = request.get_json()
+    if 'score1' not in content or 'score2' not in content or 'stage' not in content:
+        return jsonify({"Error:": "Missing values"}), BAD_REQUEST
+
+    token = request.headers['token']
+    token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query_check = """SELECT * FROM games WHERE id = %s AND user_id = %s;"""
+        cur.execute(query_check, [id, token_decoded['id']])
+        result = cur.fetchone()
+        if result is None:
+            conn.close()
+            return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
+        
+        query = """UPDATE games SET score1 = %s, score2 = %s, stage = %s WHERE id = %s"""
+        cur.execute(query, [content['score1'], content['score2'], content['stage'], id])
+        conn.commit()
+        conn.close()
+        return jsonify({"Success:": "Game updated"}), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
