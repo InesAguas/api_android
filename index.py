@@ -192,7 +192,7 @@ def update_game(id):
             return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
         
         query = """UPDATE games SET score1 = %s, score2 = %s, stage = %s, points1 = %s, points2 = %s WHERE id = %s"""
-        cur.execute(query, [content['score1'], content['score2'], content['stage'], content['points1'], content['points2'] id])
+        cur.execute(query, [content['score1'], content['score2'], content['stage'], content['points1'], content['points2'], id])
         conn.commit()
         conn.close()
         return jsonify({"Success:": "Game updated"}), SUCCESS
