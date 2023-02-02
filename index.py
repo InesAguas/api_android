@@ -112,9 +112,6 @@ def add_game():
     player1 = content['player1']
     player2 = content['player2']
     tournament = content['tournament']
-    score1 = content['score1']
-    score2 = content['score2']
-    date = content['date']
     token = request.headers['token']
     token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
 
@@ -125,7 +122,7 @@ def add_game():
         conn = connection()
         cur = conn.cursor()
         query = """INSERT INTO games (user_id, player1, player2, tournament, score1, score2, date, stage) VALUES (%s,%s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
-        cur.execute(query,[token_decoded['id'],player1, player2, tournament, score1, score2, date, 1])
+        cur.execute(query,[token_decoded['id'],player1, player2, content['tournament'], content['score1'], content['score2'], content['date'], 1])
         result = cur.fetchone()
         conn.commit()
         conn.close()
@@ -147,7 +144,7 @@ def view_games():
         conn.close()
         finalresults = []
         for row in results:
-            finalresults.append({"id":row[0], "player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d"), "stage":row[8]})
+            finalresults.append({"id":row[0], "player1":row[2], "player2":row[3],"tournament":row[4],"score1":row[5], "score2":row[6], "date":row[7].strftime("%Y-%m-%d"), "stage":row[8], "points1":row[9], "points2":row[10]})
         return jsonify(finalresults), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
@@ -179,7 +176,7 @@ def delete_game(id):
 @token_required
 def update_game(id):
     content = request.get_json()
-    if 'score1' not in content or 'score2' not in content or 'stage' not in content:
+    if 'score1' not in content or 'score2' not in content or 'stage' not in content or 'points1' not in content or 'points2' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
 
     token = request.headers['token']
@@ -194,8 +191,8 @@ def update_game(id):
             conn.close()
             return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
         
-        query = """UPDATE games SET score1 = %s, score2 = %s, stage = %s WHERE id = %s"""
-        cur.execute(query, [content['score1'], content['score2'], content['stage'], id])
+        query = """UPDATE games SET score1 = %s, score2 = %s, stage = %s, points1 = %s, points2 = %s WHERE id = %s"""
+        cur.execute(query, [content['score1'], content['score2'], content['stage'], content['points1'], content['points2'] id])
         conn.commit()
         conn.close()
         return jsonify({"Success:": "Game updated"}), SUCCESS
@@ -220,7 +217,7 @@ def get_updated_game(id, stage):
         if result[8] <= stage:
             return jsonify({"Message:": "The game has not been updated"}), NO_UPDATE
         
-        return jsonify({"score1":result[5], "score2":result[6], "stage":result[8]}), SUCCESS
+        return jsonify({"score1":result[5], "score2":result[6], "stage":result[8], "points1":result[9], "points2":result[10]}), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
