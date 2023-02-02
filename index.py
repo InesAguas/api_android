@@ -59,7 +59,7 @@ def user_login():
 
         token = jwt.encode({
                     'id': results[0],
-                    'expiration': str(datetime.utcnow() + timedelta(hours=1))
+                    'expiration': str(datetime.utcnow() + timedelta(minutes=2))
                 }, app.config['SECRET_KEY'])
         conn.close()
         return jsonify({"id": results[0], "username": results[1], "token": token}), SUCCESS
