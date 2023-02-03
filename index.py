@@ -12,6 +12,7 @@ UNAUTHORIZED_CODE = 401
 SERVER_ERROR = 500
 SUCCESS = 200
 NO_UPDATE = 204
+FORBIDDEN = 403
 
 @app.route("/")
 def welcome():
@@ -32,7 +33,6 @@ def token_required(f):
             if(token_decoded["expiration"] < str(datetime.utcnow())):
                  return jsonify({"Error:": "Token expired"}), UNAUTHORIZED_CODE
         except Exception as error:
-            print(error)
             return jsonify({"Error": "Invalid token!"}), UNAUTHORIZED_CODE
         return f(*args, **kwargs)
     return decorator
@@ -162,7 +162,7 @@ def delete_game(id):
         result = cur.fetchone()
         if result is None:
             conn.close()
-            return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
+            return jsonify({"Error:": "Not authorized"}), FORBIDDEN
         
         query = """DELETE FROM games WHERE id = %s"""
         cur.execute(query, [id])
@@ -189,7 +189,7 @@ def update_game(id):
         result = cur.fetchone()
         if result is None:
             conn.close()
-            return jsonify({"Error:": "Not authorized"}), UNAUTHORIZED_CODE
+            return jsonify({"Error:": "Not authorized"}), FORBIDDEN
         
         query = """UPDATE games SET score1 = %s, score2 = %s, stage = %s, points1 = %s, points2 = %s WHERE id = %s"""
         cur.execute(query, [content['score1'], content['score2'], content['stage'], content['points1'], content['points2'], id])
