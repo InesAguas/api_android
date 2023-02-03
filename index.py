@@ -114,7 +114,7 @@ def changeUsername():
         query_check = """SELECT * FROM users WHERE username = %s;"""
         cur.execute(query_check, [content['username']])
         result = cur.fetchone()
-        if result:
+        if result is None:
             return jsonify({"Error:": "User already exists"}), FORBIDDEN
         query = """UPDATE users SET username = %s WHERE id = %s"""
         cur.execute(query, [content['username'], token_decoded['id']])
