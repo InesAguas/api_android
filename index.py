@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request
-import psycopg2, jwt, json
+import psycopg2, jwt
 from datetime import datetime, timedelta
 from functools import wraps
+import os
 
 app = Flask(__name__)
 
@@ -277,5 +278,5 @@ def edit_game(id):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
 def connection():
-    conn = psycopg2.connect(host="aid.estgoh.ipc.pt", database="db2020155202", user="a2020155202", password="a2020155202")
+    conn = psycopg2.connect(host=os.getenv("HOST"), database=os.getenv("DATABASE"), user=os.getenv("USER"), password=os.getenv("PASSWORD"))
     return conn
