@@ -57,7 +57,7 @@ def user_login():
 
         token = jwt.encode({
                     'id': results[0],
-                    'expiration': str(datetime.utcnow() + timedelta(minutes=2))
+                    'expiration': str(datetime.utcnow() + timedelta(hours=1))
                 }, app.config['SECRET_KEY'])
         conn.close()
         return jsonify({"id": results[0], "username": results[1], "token": token}), SUCCESS
@@ -83,11 +83,11 @@ def user_add():
     try:
         conn = connection()
         cur = conn.cursor()
-        query_check = """SELECT id, username FROM users WHERE username = %s AND password = crypt(%s, password);"""
-        cur.execute(query_check, [username, password])
+        query_check = """SELECT id, username FROM users WHERE username = %s;"""
+        cur.execute(query_check, [username])
         result = cur.fetchone()
         if result:
-            return jsonify({"Error:": "User already exists"}), BAD_REQUEST
+            return jsonify({"Error:": "User already exists"}), FORBIDDEN
         query = """INSERT INTO users (username, password) VALUES (%s, crypt(%s, gen_salt('bf')));"""
         cur.execute(query,[username, password])
         conn.commit()
@@ -111,6 +111,11 @@ def changeUsername():
     try:
         conn = connection()
         cur = conn.cursor()
+        query_check = """SELECT * FROM users WHERE username = %s;"""
+        cur.execute(query_check, [content['username']])
+        result = cur.fetchone()
+        if result:
+            return jsonify({"Error:": "User already exists"}), FORBIDDEN
         query = """UPDATE users SET username = %s WHERE id = %s"""
         cur.execute(query, [content['username'], token_decoded['id']])
         conn.commit()
