@@ -42,7 +42,6 @@ def token_required(f):
 @app.route("/user/login", methods=['POST'])
 def user_login():
     content = request.get_json()
-    print(content)
 
     if 'username' not in content or 'password' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
@@ -53,7 +52,6 @@ def user_login():
         query = """SELECT id, username FROM users WHERE username = %s AND password = crypt(%s, password);"""
         cur.execute(query, (content['username'], content['password']))
         results = cur.fetchone()
-        print(results)
         if results is None:
             return jsonify({"Error:": "Wrong credentials"}), BAD_REQUEST
 
@@ -65,7 +63,6 @@ def user_login():
         return jsonify({"id": results[0], "username": results[1], "token": token}), SUCCESS
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
 
@@ -96,6 +93,29 @@ def user_add():
         conn.commit()
         conn.close()
         return jsonify({"Message:": "The user was registered"}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
+
+@app.route("/user/edit", methods=['PUT'])
+@token_required
+def changeUsername():
+    content = request.get_json()
+    if 'username' not in content:
+        return jsonify({"Error:": "Missing values"}), BAD_REQUEST
+    
+    if not content['username'].strip():
+        return jsonify({"Error:": "Values can't be empty"}), BAD_REQUEST
+
+    token = request.headers['token']
+    token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query = """UPDATE users SET username = %s WHERE id = %s"""
+        cur.execute(query, [content['username'], token_decoded['id']])
+        conn.commit()
+        conn.close()
+        return jsonify({"Success:": "Username updated"}), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
@@ -179,6 +199,9 @@ def update_game(id):
     if 'score1' not in content or 'score2' not in content or 'stage' not in content or 'points1' not in content or 'points2' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
 
+    if(not content['player1'].strip() or not content['player2'].strip() or not content['tournament'].strip()):
+        return jsonify({"Error:": "Values can't be empty"}), BAD_REQUEST
+
     token = request.headers['token']
     token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
     try:
@@ -218,6 +241,33 @@ def get_updated_game(id, stage):
             return jsonify({"Message:": "The game has not been updated"}), NO_UPDATE
         
         return jsonify({"score1":result[5], "score2":result[6], "stage":result[8], "points1":result[9], "points2":result[10]}), SUCCESS
+    except (Exception, psycopg2.DatabaseError):
+        return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
+
+@app.route("/games/<int:id>/edit", methods=['PUT'])
+@token_required
+def edit_game(id):
+    content = request.get_json()
+    if 'player1' not in content or 'player2' not in content or 'tournament' not in content:
+        return jsonify({"Error:": "Missing values"}), BAD_REQUEST
+
+    token = request.headers['token']
+    token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
+    try:
+        conn = connection()
+        cur = conn.cursor()
+        query_check = """SELECT * FROM games WHERE id = %s AND user_id = %s;"""
+        cur.execute(query_check, [id, token_decoded['id']])
+        result = cur.fetchone()
+        if result is None:
+            conn.close()
+            return jsonify({"Error:": "Not authorized"}), FORBIDDEN
+        
+        query = """UPDATE games SET player1 = %s, player2 = %s, tournament = %s WHERE id = %s"""
+        cur.execute(query, [content['player1'], content['player2'], content['tournament'], id])
+        conn.commit()
+        conn.close()
+        return jsonify({"Success:": "Game updated"}), SUCCESS
     except (Exception, psycopg2.DatabaseError):
         return jsonify({"Error:": "Something went wrong"}), SERVER_ERROR
 
