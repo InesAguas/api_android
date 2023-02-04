@@ -205,9 +205,6 @@ def update_game(id):
     if 'score1' not in content or 'score2' not in content or 'stage' not in content or 'points1' not in content or 'points2' not in content:
         return jsonify({"Error:": "Missing values"}), BAD_REQUEST
 
-    if(not content['player1'].strip() or not content['player2'].strip() or not content['tournament'].strip()):
-        return jsonify({"Error:": "Values can't be empty"}), BAD_REQUEST
-
     token = request.headers['token']
     token_decoded = jwt.decode(token, app.config['SECRET_KEY'], algorithms="HS256")
     try:
